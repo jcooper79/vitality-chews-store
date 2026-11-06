@@ -23,12 +23,20 @@
   "vars": {
     "SITE_URL": "https://vitalitychews.com",
     "STRIPE_AUTOMATIC_TAX": "false",
-    "ORDER_EMAIL_FROM": "orders@vitalitychews.com"
+    "ORDER_EMAIL_FROM": "orders@vitalitychews.com",
+    "MAIL_DOMAIN": "vitalitychews.com",
+    "SUPPORT_EMAIL": "hello@vitalitychews.com",
+    // Links in admin emails. Change to https://vitalitychews.com when the domain points at this Worker.
+    "ADMIN_BASE_URL": "https://vitality-chews-store.resqware.workers.dev",
+    // "false" = notices say only that a message arrived (no text); you then read and reply in the admin.
+    "INBOX_NOTIFY_BODY": "true"
   },
-  // New-order and refund emails to the owner. Recipient is the ORDER_NOTIFY_TO secret and must be a
-  // verified Email Routing destination address. vitalitychews.com must be onboarded in Email Service > Email Sending.
-  "send_email": [{ "name": "ORDER_EMAIL" }],
+  // Email: order/refund notices and inbox notices to ORDER_NOTIFY_TO (secret, a verified Email Routing address),
+  // customer replies from SUPPORT_EMAIL. vitalitychews.com must be onboarded in Email Service > Email Sending,
+  // and Email Routing's catch-all must send to this Worker for the inbox.
+  "send_email": [{ "name": "EMAIL" }],
+  "r2_buckets": [{ "binding": "MAIL_FILES", "bucket_name": "vitality-chews-mail" }],
   // Secrets (set with `wrangler secret put NAME` or in the dashboard):
-  //   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SHIPSTATION_USER, SHIPSTATION_PASS, ORDER_NOTIFY_TO
+  //   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SHIPSTATION_USER, SHIPSTATION_PASS, ORDER_NOTIFY_TO, INBOX_SECRET
   "observability": { "enabled": true }
 }

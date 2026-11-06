@@ -8,6 +8,13 @@ Static storefront + Cloudflare Worker for vitalitychews.com. Replaces the WordPr
 - **Refunds:** a full refund marks the order `cancelled` (ShipStation picks that up). A partial refund leaves the order alone so it still ships.
 - **Fulfillment:** Rocktomic pulls orders through a ShipStation **Custom Store** channel pointed at `/api/shipstation` and posts tracking back to it.
 
+## Customer email and admin portal
+Mail for vitalitychews.com runs on Cloudflare (no Google Workspace):
+- **Receiving:** Email Routing's catch-all sends every address to this Worker (`email()` in `src/mail.js`). Messages are stored in D1 (`threads`, `messages`), attachments in R2 (`vitality-chews-mail`). The contact form at `/contact/` lands in the same inbox.
+- **Notices:** the owner (`ORDER_NOTIFY_TO`) gets a note from `inbox@` with a button to the admin. Reply-To is a signed `reply+<id>-<sig>@` address, so replying from your own inbox sends **only the new text** to the customer, from `hello@`. Quotes and anything below a `--` signature line are removed. Replies are accepted only from `ORDER_NOTIFY_TO` with a passing DKIM/DMARC result. Set `INBOX_NOTIFY_BODY` to `"false"` to leave the customer's text out of notices.
+- **Admin:** `/admin` (inbox, replies, new email, orders). Sign-in is a one-time link emailed to `ORDER_NOTIFY_TO`. `ADMIN_BASE_URL` sets the links in emails; change it to `https://vitalitychews.com` when the domain points here.
+- Mail to `inbox@` and `orders@` bounces. Auto-replies and bulk mail are stored without a notice.
+
 ## Edit content
 - Products, prices, SEO titles, FAQs: `site/data/products.json`
 - Site settings (free-shipping threshold, flat rate, email): `site/data/site.json`

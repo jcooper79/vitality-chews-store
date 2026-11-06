@@ -3,9 +3,9 @@ title: Contact Us
 seoTitle: Contact Vitality Chews | Order Help & Product Questions
 description: Questions about an order or a product? Email the Vitality Chews team at hello@vitalitychews.com. We answer within one business day.
 ---
-## We are here to help
+## Other ways to reach us
 
-Email us at **[hello@vitalitychews.com](mailto:hello@vitalitychews.com)** and we will reply within one business day, Monday through Friday.
+Use the form above or email **[hello@vitalitychews.com](mailto:hello@vitalitychews.com)**. We reply within one business day, Monday through Friday.
 
 To help us find your order quickly, include your **order number** (it starts with VC-) and the email address you used at checkout.
 

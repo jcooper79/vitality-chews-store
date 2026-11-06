@@ -180,5 +180,25 @@
     }
   }
 
+  // Contact form -> /api/contact (lands in the admin inbox)
+  var cf = document.querySelector('[data-contact-form]');
+  if (cf) cf.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var status = cf.querySelector('[data-contact-status]');
+    var btn = cf.querySelector('button[type=submit]');
+    var data = {};
+    ['name', 'email', 'order', 'message', 'website'].forEach(function (k) { var el = cf.elements[k]; data[k] = el ? el.value : ''; });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) { status.textContent = 'Please enter a valid email address.'; return; }
+    if (data.message.trim().length < 5) { status.textContent = 'Please write a short message.'; return; }
+    btn.disabled = true; btn.textContent = 'Sending…'; status.textContent = '';
+    fetch('/api/contact', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; }); })
+      .then(function () {
+        cf.classList.add('sent');
+        cf.innerHTML = '<h2>Thanks! Your message is on its way.</h2><p>We reply within one business day, Monday through Friday.</p>';
+      })
+      .catch(function (err) { status.textContent = err.message; btn.disabled = false; btn.textContent = 'Send message'; });
+  });
+
   updateCount();
 })();

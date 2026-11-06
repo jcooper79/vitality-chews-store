@@ -494,6 +494,20 @@ ${related.length ? `<section class="section"><div class="wrap"><div class="secti
 
 const PAGE_PHOTOS = { about: 'park-couple', contact: 'morning-workout', faq: 'heart-healthy' };
 
+const contactForm = `
+<form class="contact-form" data-contact-form novalidate>
+  <h2>Send us a message</h2>
+  <div class="cf-row">
+    <label>Your name<input type="text" name="name" autocomplete="name" maxlength="120"></label>
+    <label>Email<input type="email" name="email" autocomplete="email" required maxlength="200"></label>
+  </div>
+  <label>Order number <span class="muted">(optional, starts with VC-)</span><input type="text" name="order" maxlength="40"></label>
+  <label>Message<textarea name="message" required maxlength="5000" rows="6"></textarea></label>
+  <label class="hp" aria-hidden="true">Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+  <button class="btn btn-lg" type="submit">Send message</button>
+  <p class="small" data-contact-status role="status"></p>
+</form>`;
+
 function contentPage(slug, { meta, body }) {
   const url = `/${slug}/`;
   let html = markdown(body);
@@ -515,6 +529,7 @@ function contentPage(slug, { meta, body }) {
   const page = `
 ${pageHead({ title: meta.title, photoName: PAGE_PHOTOS[slug] || '' })}
 <section class="section"><div class="wrap prose">
+${slug === 'contact' ? contactForm : ''}
 ${html}
 ${meta.updated ? `<p class="small muted">Last updated: ${esc(meta.updated)}</p>` : ''}
 </div></section>`;
@@ -674,7 +689,7 @@ write(
     .map((u) => `  <url><loc>${site.url}${u.url}</loc><lastmod>${BUILD_DATE}</lastmod><priority>${u.priority}</priority></url>`)
     .join('\n')}\n</urlset>\n`
 );
-write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /cart/\nDisallow: /order/\nDisallow: /api/\n\nSitemap: ${site.url}/sitemap.xml\n`);
+write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /cart/\nDisallow: /order/\nDisallow: /api/\nDisallow: /admin/\n\nSitemap: ${site.url}/sitemap.xml\n`);
 
 // Products manifest used by the Worker for server-side pricing (never trust cart prices from the browser)
 fs.mkdirSync(path.join(ROOT, 'src/generated'), { recursive: true });

@@ -4,8 +4,13 @@
 // - /api/stripe-webhook    records paid orders in D1, handles refunds, emails the owner
 // - /api/order             order lookup for the thank-you page
 // - /api/shipstation       ShipStation "Custom Store" endpoint (order export + ship notify) for Rocktomic fulfillment
+// - /api/contact           contact form -> admin inbox
+// - /admin                 admin portal (inbox, replies, orders); see src/admin.js
+// - email()                inbound mail from Cloudflare Email Routing; see src/mail.js
 // - 301 redirects for old WordPress/WooCommerce URLs
 import { CATALOG, SHIPPING } from './generated/catalog.js';
+import { notifyOwner, handleEmail, handleContact } from './mail.js';
+import { handleAdmin } from './admin.js';
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -142,33 +147,8 @@ async function createCheckout(request, env) {
   }
 }
 
-// ---------- owner notifications ----------
-// Sent with the Cloudflare send_email binding (ORDER_EMAIL) to ORDER_NOTIFY_TO, which must be a verified
-// Email Routing destination address. A failed send is logged and never blocks an order or a webhook.
+// ---------- owner notifications (sent through mail.js notifyOwner) ----------
 const usd = (cents) => '$' + (Number(cents || 0) / 100).toFixed(2);
-const htmlEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-async function notifyOwner(env, subject, lines) {
-  if (!env.ORDER_EMAIL || !env.ORDER_NOTIFY_TO) {
-    console.log('owner email skipped (ORDER_EMAIL binding or ORDER_NOTIFY_TO not set):', subject);
-    return;
-  }
-  const text = lines.join('\n');
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#13241b">${lines
-    .map((l) => (l === '' ? '<br>' : `<div>${htmlEsc(l)}</div>`))
-    .join('')}</div>`;
-  try {
-    await env.ORDER_EMAIL.send({
-      to: env.ORDER_NOTIFY_TO,
-      from: { email: env.ORDER_EMAIL_FROM || 'orders@vitalitychews.com', name: 'Vitality Chews Store' },
-      subject,
-      text,
-      html,
-    });
-  } catch (e) {
-    console.error('owner email failed:', subject, e.message);
-  }
-}
 
 async function emailNewOrder(env, orderNumber, o, items) {
   const ship = [o.ship_name, o.ship_line1, o.ship_line2, `${o.ship_city}, ${o.ship_state} ${o.ship_postal}`, o.ship_country].filter((x) => x && x.trim());
@@ -430,6 +410,16 @@ function withHeaders(res) {
 }
 
 export default {
+  async email(message, env) {
+    try {
+      await handleEmail(message, env);
+    } catch (e) {
+      // Never lose a customer email: reject so the sender gets a bounce instead of silence
+      console.error('email handler', e.stack || e.message);
+      message.setReject('Temporary problem receiving this message. Please try again later.');
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -444,6 +434,8 @@ export default {
       if (url.pathname === '/api/stripe-webhook' && request.method === 'POST') return await stripeWebhook(request, env);
       if (url.pathname === '/api/order' && request.method === 'GET') return await orderLookup(url, env);
       if (url.pathname === '/api/shipstation') return await shipstation(request, url, env);
+      if (url.pathname === '/api/contact' && request.method === 'POST') return await handleContact(request, env);
+      if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return await handleAdmin(request, env, url);
       if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     } catch (e) {
       console.error(url.pathname, e.stack || e.message);
