@@ -16,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "vitality-chews-orders",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "b2c5b208-7774-4984-900b-d7a76ad8552c",
       "migrations_dir": "migrations"
     }
   ],
