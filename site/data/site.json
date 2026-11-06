@@ -1,0 +1,29 @@
+{
+  "name": "Vitality Chews",
+  "url": "https://vitalitychews.com",
+  "tagline": "Gummy supplements made in the USA",
+  "description": "Vitality Chews makes great-tasting gummy supplements for calm, sleep, immune support, joint health and daily nutrition. Made in the USA in a GMP-certified, FDA-registered facility.",
+  "email": "hello@vitalitychews.com",
+  "phone": "",
+  "address": "",
+  "freeShippingThreshold": 75,
+  "flatShipping": 5.99,
+  "logo": "/img/logo.png",
+  "ogImage": "/img/og-default.jpg",
+  "social": [],
+  "fdaDisclaimer": "These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease.",
+  "nav": [
+    { "label": "Shop", "href": "/shop/" },
+    { "label": "Learn", "href": "/learn/" },
+    { "label": "About", "href": "/about/" },
+    { "label": "FAQ", "href": "/faq/" },
+    { "label": "Contact", "href": "/contact/" }
+  ],
+  "footerLinks": [
+    { "label": "Shipping Policy", "href": "/shipping-policy/" },
+    { "label": "Refund Policy", "href": "/refund-policy/" },
+    { "label": "Terms & Conditions", "href": "/terms-and-conditions/" },
+    { "label": "Disclaimer", "href": "/disclaimer/" },
+    { "label": "Privacy Policy", "href": "/privacy-policy/" }
+  ]
+}

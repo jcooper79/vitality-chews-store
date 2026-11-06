@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vitality-chews-store",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "account_id": "712e38517a7e6baf08301e3202ca5da8",
+  "build": { "command": "npm run build" },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vitality-chews-orders",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "SITE_URL": "https://vitalitychews.com",
+    "STRIPE_AUTOMATIC_TAX": "false"
+  },
+  // Secrets (set with `wrangler secret put NAME` or in the dashboard):
+  //   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SHIPSTATION_USER, SHIPSTATION_PASS
+  "observability": { "enabled": true }
+}

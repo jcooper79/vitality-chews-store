@@ -1,0 +1,285 @@
+[
+  {
+    "slug": "calm-essence",
+    "sku": "ROC929",
+    "name": "Calm Essence",
+    "subtitle": "Ashwagandha Gummies",
+    "price": 31.99,
+    "weightOz": 8,
+    "count": "60 gummies",
+    "serving": "2 gummies",
+    "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
+    "image": "/img/products/roc929.png",
+    "gallery": ["/img/products/roc929-label.png"],
+    "category": "Stress & Mood",
+    "goal": "stress",
+    "seoTitle": "Ashwagandha Gummies for Calm & Stress Support | Calm Essence",
+    "metaDescription": "Calm Essence ashwagandha gummies support a calm mood and a healthy response to everyday stress.* Made in the USA, third-party tested, 2 gummies a day.",
+    "summary": "Ashwagandha in an easy, great-tasting gummy to support a calm, balanced mood and a healthy response to everyday stress.*",
+    "benefits": [
+      "Supports a healthy response to everyday stress*",
+      "Supports a calm, balanced mood*",
+      "Supports restful sleep as part of a nightly routine*",
+      "No pills to swallow: two gummies a day"
+    ],
+    "ingredients": [
+      {
+        "name": "Ashwagandha (Withania somnifera)",
+        "about": "An adaptogenic herb used for centuries in Ayurvedic tradition. Ashwagandha supports the body's natural response to stress and helps maintain healthy cortisol levels already within the normal range.*"
+      }
+    ],
+    "body": [
+      "Busy days, packed schedules and screens that never turn off make it hard to feel settled. Calm Essence gives you a simple daily habit: two ashwagandha gummies that support a calm, balanced mood and a healthy response to everyday stress.*",
+      "Ashwagandha is one of the most studied adaptogens. Adaptogens are herbs that help the body adapt to everyday stressors. We put it in a chewable gummy so it fits into your morning or evening without a pill.",
+      "Every batch is made in the USA in a GMP-certified, FDA-registered facility and third-party tested for purity."
+    ],
+    "faq": [
+      {
+        "q": "When should I take ashwagandha gummies?",
+        "a": "Take two gummies once a day. Many people take them at the same time each day, either in the morning or in the evening, to make it part of a routine."
+      },
+      {
+        "q": "How long does it take to notice a difference?",
+        "a": "Everyone is different. Most people use ashwagandha consistently for several weeks before deciding how it works for them."
+      },
+      {
+        "q": "Can I take Calm Essence with other supplements or medications?",
+        "a": "Talk with your healthcare provider before combining supplements with medications, or if you are pregnant, nursing or have a medical condition."
+      }
+    ],
+    "related": ["tranquil-nights", "vitality-spectrum"],
+    "verifyLabel": true
+  },
+  {
+    "slug": "tranquil-nights",
+    "sku": "ROC920",
+    "name": "Tranquil Nights",
+    "subtitle": "Sleep Support Gummies",
+    "price": 19.97,
+    "weightOz": 8,
+    "count": "60 gummies",
+    "serving": "2 gummies",
+    "suggestedUse": "As a dietary supplement, take two (2) gummies before bedtime.",
+    "image": "/img/products/roc920.png",
+    "gallery": ["/img/products/roc920-label.png"],
+    "category": "Sleep",
+    "goal": "sleep",
+    "seoTitle": "Sleep Gummies with Melatonin & Passion Flower | Tranquil Nights",
+    "metaDescription": "Tranquil Nights sleep gummies with melatonin, passion flower and vitamin B6 help you fall asleep and support restful sleep.* Made in the USA.",
+    "summary": "A bedtime gummy with melatonin, passion flower and vitamin B6 to help you fall asleep and wake up rested.*",
+    "benefits": [
+      "Helps you fall asleep faster*",
+      "Supports restful, quality sleep*",
+      "Supports your natural sleep-wake cycle*",
+      "Relaxing evening ritual: two gummies before bed"
+    ],
+    "ingredients": [
+      {
+        "name": "Melatonin",
+        "about": "A hormone your body makes naturally in the evening. Supplemental melatonin helps you fall asleep and supports a healthy sleep-wake cycle.*"
+      },
+      {
+        "name": "Passion flower extract",
+        "about": "A flowering plant traditionally used to promote relaxation in the evening.*"
+      },
+      {
+        "name": "Vitamin B6",
+        "about": "An essential vitamin involved in more than 100 enzyme reactions, including the production of neurotransmitters that support mood.*"
+      }
+    ],
+    "body": [
+      "Good days start the night before. Tranquil Nights combines melatonin, passion flower and vitamin B6 in a great-tasting gummy you take as part of your wind-down routine.",
+      "Melatonin helps signal to your body that it is time to sleep, and passion flower has been used for generations to promote evening relaxation.*",
+      "Made in the USA in a GMP-certified, FDA-registered facility and third-party tested for purity."
+    ],
+    "faq": [
+      {
+        "q": "How long before bed should I take Tranquil Nights?",
+        "a": "Take two gummies about 30 to 60 minutes before you plan to sleep."
+      },
+      {
+        "q": "Will sleep gummies make me groggy in the morning?",
+        "a": "Most people feel fine in the morning, but everyone responds differently. Start with the suggested serving and avoid driving or operating machinery after taking it."
+      },
+      {
+        "q": "Can I take melatonin gummies every night?",
+        "a": "Many adults use melatonin nightly for short periods. Ask your healthcare provider about long-term use or if you take other medications."
+      }
+    ],
+    "related": ["calm-essence", "vitality-spectrum"],
+    "verifyLabel": true
+  },
+  {
+    "slug": "shieldberry-vitality",
+    "sku": "ROC942",
+    "name": "ShieldBerry Vitality",
+    "subtitle": "Elderberry, Vitamin C & Zinc Gummies",
+    "price": 29.99,
+    "weightOz": 8,
+    "count": "60 gummies",
+    "serving": "2 gummies",
+    "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
+    "image": "/img/products/roc942.png",
+    "gallery": ["/img/products/roc942-label.png", "/img/products/roc942-lifestyle.jpg"],
+    "category": "Immune Support",
+    "goal": "immune",
+    "seoTitle": "Elderberry Gummies with Vitamin C & Zinc | ShieldBerry Vitality",
+    "metaDescription": "ShieldBerry Vitality elderberry gummies with vitamin C and zinc support immune health and antioxidant defense.* Made in the USA, third-party tested.",
+    "summary": "Elderberry, vitamin C and zinc in one delicious gummy to support your immune system every day of the year.*",
+    "benefits": [
+      "Supports healthy immune function*",
+      "Provides antioxidant support*",
+      "Vitamin C supports collagen formation for healthy skin*",
+      "Zinc supports normal immune cell function*"
+    ],
+    "ingredients": [
+      {
+        "name": "Elderberry extract",
+        "about": "Dark purple berries rich in naturally occurring polyphenols and flavonoids that provide antioxidant support.*"
+      },
+      {
+        "name": "Vitamin C",
+        "about": "An essential antioxidant vitamin that supports immune function and the formation of collagen for healthy skin.*"
+      },
+      {
+        "name": "Zinc",
+        "about": "An essential mineral that supports normal immune cell function, healthy skin and normal cognitive function.*"
+      }
+    ],
+    "body": [
+      "ShieldBerry Vitality brings together three of the most popular immune-support ingredients, elderberry, vitamin C and zinc, in a berry-flavored gummy you will look forward to.*",
+      "Make it part of your daily routine all year, not just during the busy winter months.",
+      "Made in the USA in a GMP-certified, FDA-registered facility and third-party tested for purity."
+    ],
+    "faq": [
+      {
+        "q": "Can I take elderberry gummies every day?",
+        "a": "Yes. ShieldBerry Vitality is designed for daily use at the suggested serving of two gummies."
+      },
+      {
+        "q": "Can I take ShieldBerry Vitality with a multivitamin?",
+        "a": "Many people do. Check the labels so your total vitamin C and zinc stay within recommended limits, and ask your healthcare provider if you are unsure."
+      },
+      {
+        "q": "Are these gummies for kids?",
+        "a": "No. Vitality Chews products are made for adults 18 and older."
+      }
+    ],
+    "related": ["vitality-spectrum", "calm-essence"],
+    "verifyLabel": false
+  },
+  {
+    "slug": "flexiease",
+    "sku": "ROC923",
+    "name": "Flexiease",
+    "subtitle": "Glucosamine Joint Support Gummies",
+    "price": 21.97,
+    "weightOz": 8,
+    "count": "60 gummies",
+    "serving": "2 gummies",
+    "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
+    "image": "/img/products/roc923.png",
+    "gallery": ["/img/products/roc923-label.png", "/img/products/roc923-lifestyle.jpg"],
+    "category": "Joint Health",
+    "goal": "joints",
+    "seoTitle": "Glucosamine Gummies for Joint Support | Flexiease",
+    "metaDescription": "Flexiease glucosamine gummies support joint comfort, flexibility and healthy cartilage.* A tasty alternative to big joint pills. Made in the USA.",
+    "summary": "Glucosamine in a tasty chewable to support joint comfort, flexibility and healthy cartilage. No horse-pill tablets.*",
+    "benefits": [
+      "Supports joint comfort and flexibility*",
+      "Supports healthy cartilage and connective tissue*",
+      "Helps you stay active*",
+      "Easier to take than large joint tablets"
+    ],
+    "ingredients": [
+      {
+        "name": "Glucosamine",
+        "about": "A compound found naturally in cartilage. Supplemental glucosamine supports healthy cartilage and joint function.*"
+      }
+    ],
+    "body": [
+      "Walking, lifting, gardening, getting up off the floor with the grandkids: your joints are part of everything you do. Flexiease delivers glucosamine in a chewable gummy so supporting your joints does not mean swallowing oversized tablets.*",
+      "Glucosamine is one of the most widely used joint-support nutrients. Take two gummies a day and stay consistent.",
+      "Made in the USA in a GMP-certified, FDA-registered facility and third-party tested for purity."
+    ],
+    "faq": [
+      {
+        "q": "How long should I take glucosamine gummies?",
+        "a": "Joint-support nutrients work best with consistent daily use. Most people take them for at least a few months before judging how they feel."
+      },
+      {
+        "q": "Is glucosamine safe for people with shellfish allergies?",
+        "a": "Glucosamine is often sourced from shellfish. If you have a shellfish allergy, check the label and talk with your healthcare provider before use."
+      },
+      {
+        "q": "Can I take Flexiease with other joint supplements?",
+        "a": "Check the labels to avoid doubling up on glucosamine, and ask your healthcare provider if you take blood thinners or other medications."
+      }
+    ],
+    "related": ["vitality-spectrum", "shieldberry-vitality"],
+    "verifyLabel": false
+  },
+  {
+    "slug": "vitality-spectrum",
+    "sku": "ROC918",
+    "name": "Vitality Spectrum",
+    "subtitle": "Daily Multivitamin Gummies",
+    "price": 19.97,
+    "weightOz": 8,
+    "count": "60 gummies",
+    "serving": "2 gummies",
+    "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
+    "image": "/img/products/roc918.png",
+    "gallery": ["/img/products/roc918-label.png", "/img/products/roc918-lifestyle.jpg"],
+    "category": "Daily Nutrition",
+    "goal": "daily",
+    "seoTitle": "Multivitamin Gummies for Adults | Vitality Spectrum",
+    "metaDescription": "Vitality Spectrum adult multivitamin gummies with vitamins A, C, D and more help fill nutrient gaps and support energy, immunity and overall wellness.*",
+    "summary": "A complete daily multivitamin in a delicious gummy to help fill nutrient gaps and support energy, immunity and overall wellness.*",
+    "benefits": [
+      "Helps fill common nutrient gaps*",
+      "Supports energy metabolism*",
+      "Supports immune health*",
+      "Supports healthy bones, skin and vision*"
+    ],
+    "ingredients": [
+      {
+        "name": "Vitamin A",
+        "about": "Supports healthy vision, skin and immune function.*"
+      },
+      {
+        "name": "Vitamin C",
+        "about": "An antioxidant that supports immune health and collagen formation.*"
+      },
+      {
+        "name": "Vitamin D",
+        "about": "Supports calcium absorption for strong bones, healthy muscle function and immune health.*"
+      },
+      {
+        "name": "B vitamins",
+        "about": "Help your body turn the food you eat into energy.*"
+      }
+    ],
+    "body": [
+      "Even with a good diet, it is easy to come up short on key vitamins. Vitality Spectrum makes daily nutrition simple with a complete multivitamin in a gummy that tastes like a treat.*",
+      "Two gummies a day help fill nutrient gaps and support energy, immune health, bones, skin and vision.*",
+      "Made in the USA in a GMP-certified, FDA-registered facility and third-party tested for purity."
+    ],
+    "faq": [
+      {
+        "q": "Should I take multivitamin gummies with food?",
+        "a": "Taking your multivitamin with a meal can help absorption of fat-soluble vitamins like A and D, and is easier on the stomach."
+      },
+      {
+        "q": "Can I take Vitality Spectrum with other Vitality Chews?",
+        "a": "Yes, many customers pair it with Calm Essence or Tranquil Nights. Check labels so you do not exceed recommended amounts of any single vitamin or mineral."
+      },
+      {
+        "q": "Are multivitamin gummies as good as tablets?",
+        "a": "The best multivitamin is the one you take every day. Gummies are an easy way to stay consistent."
+      }
+    ],
+    "related": ["shieldberry-vitality", "flexiease"],
+    "verifyLabel": false
+  }
+]
