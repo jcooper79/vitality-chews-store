@@ -17,12 +17,18 @@ Static storefront + Cloudflare Worker for vitalitychews.com. Replaces the WordPr
 1. `npx wrangler d1 create vitality-chews-orders` and put the id in `wrangler.jsonc`, then `npm run db:migrate`.
 2. Secrets: `npx wrangler secret put STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SHIPSTATION_USER`, `SHIPSTATION_PASS`.
 3. Stripe webhook → `https://vitalitychews.com/api/stripe-webhook`, events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`.
-4. Run the **Import WordPress images** GitHub Action once (replaces the placeholder images in `site/static/img`).
-5. Give Rocktomic the ShipStation Custom Store details:
+4. Give Rocktomic the ShipStation Custom Store details:
    - URL: `https://vitalitychews.com/api/shipstation`
    - Username / password: the `SHIPSTATION_USER` / `SHIPSTATION_PASS` values
    - Status mapping: `paid` = Awaiting Shipment, `shipped` = Shipped, `cancelled` = Cancelled
-6. Point the domain at the Worker (Custom Domains) after testing on the workers.dev URL.
+5. Point the domain at the Worker (Custom Domains) after testing on the workers.dev URL.
+
+## Images
+All images in `site/static/img` came from the WordPress media library and were resized and converted to WebP:
+- `products/<sku>-600.webp` / `-1200.webp`: bottle renders (transparent). `products/<sku>.jpg`: the same render on white, used by Stripe Checkout, ShipStation and social previews.
+- `products/<sku>-facts*.webp`: Supplement Facts panels. `products/<sku>-coa.jpg`: lab certificates of analysis.
+- `photos/`: lifestyle photos (`-900` and `-1800` widths). `badges/`: certification seals. `lineup-*.webp`: the five bottles together.
+- Each product's colors (`theme`) live in `products.json`.
 
 ## Local
 `npm install && npm run dev` (create `.dev.vars` with the secrets above).

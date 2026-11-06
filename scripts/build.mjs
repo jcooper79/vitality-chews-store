@@ -13,6 +13,7 @@ const site = JSON.parse(fs.readFileSync(path.join(SITE_DIR, 'data/site.json'), '
 const products = JSON.parse(fs.readFileSync(path.join(SITE_DIR, 'data/products.json'), 'utf8'));
 const bySlug = Object.fromEntries(products.map((p) => [p.slug, p]));
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
+const BUILD_ID = Date.now().toString(36); // cache-busting query for CSS/JS
 
 // ---------- helpers ----------
 const esc = (s = '') =>
@@ -122,16 +123,38 @@ const breadcrumbs = (items) => ({
   itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: abs(it.url) })),
 });
 
-// ---------- layout ----------
-const ICON_CART = '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>';
+// ---------- images ----------
+const IMG_DIR = path.join(SITE_DIR, 'static/img');
+// Lifestyle photo from site/static/img/photos (-900 and, when the source was big enough, -1800)
+function photo(name, alt, { sizes = '100vw', cls = '', eager = false, w = 900, h = 600 } = {}) {
+  const big = fs.existsSync(path.join(IMG_DIR, `photos/${name}-1800.webp`));
+  const srcset = `/img/photos/${name}-900.webp 900w${big ? `, /img/photos/${name}-1800.webp 1800w` : ''}`;
+  return `<img class="${cls}" src="/img/photos/${name}-900.webp" srcset="${srcset}" sizes="${sizes}" alt="${esc(alt)}" width="${w}" height="${h}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
+}
+const bottle = (p, { sizes = '(max-width: 700px) 60vw, 300px', eager = false, cls = '' } = {}) =>
+  `<img class="${cls}" src="${p.img.sm}" srcset="${p.img.sm} 600w, ${p.img.lg} 1200w" sizes="${sizes}" alt="${esc(p.name)} ${esc(p.subtitle)}, ${esc(p.count)} bottle" width="600" height="600"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
+const themeVars = (p) => `--accent:${p.theme.accent};--tint:${p.theme.tint};--tint2:${p.theme.tint2}`;
+const servings = (p) => Math.round(parseInt(p.count, 10) / parseInt(p.serving, 10)) || 30;
+const perDay = (p) => money(p.price / servings(p));
 
-function layout({ title, description, urlPath, body, schema = [], ogType = 'website', ogImage, noindex = false, bodyClass = '' }) {
+const SEALS = [
+  ['made-in-usa', 'Made in the USA'],
+  ['gmp', 'GMP certified'],
+  ['fda-registered', 'Made in an FDA-registered facility'],
+  ['lab-tested', 'Third-party lab tested'],
+];
+const seal = ([file, alt], size = 88) =>
+  `<img src="/img/badges/${file}.webp" alt="${esc(alt)}" width="${size}" height="${size}" loading="lazy" decoding="async">`;
+
+// ---------- layout ----------
+function layout({ title, description, urlPath, body, schema = [], ogType = 'website', ogImage, noindex = false, bodyClass = '', preload = '' }) {
   const canonical = site.url + urlPath;
   const img = abs(ogImage || site.ogImage);
   const nav = site.nav
     .map((n) => `<li><a href="${n.href}"${urlPath.startsWith(n.href) ? ' aria-current="page"' : ''}>${esc(n.label)}</a></li>`)
     .join('');
   const graph = { '@context': 'https://schema.org', '@graph': [orgSchema, ...schema] };
+  const free = money(site.freeShippingThreshold).replace('.00', '');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -148,146 +171,161 @@ ${noindex ? '<meta name="robots" content="noindex, follow">' : '<meta name="robo
 <meta property="og:url" content="${canonical}">
 <meta property="og:image" content="${img}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#1f7a4d">
-<link rel="icon" href="/img/icon.png" type="image/png">
-<link rel="apple-touch-icon" href="/img/icon.png">
+<meta name="theme-color" content="#229b5e">
+<link rel="icon" href="/img/icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/img/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/img/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/css/site.css?v=${BUILD_ID}">
+${preload}
 ${jsonLd(graph)}
 </head>
 <body class="${bodyClass}">
 <a class="skip" href="#main">Skip to content</a>
-<div class="promo">Free shipping on US orders of ${money(site.freeShippingThreshold).replace('.00', '')}+ &middot; Made in the USA</div>
+<div class="promo"><p>Free US shipping on orders over ${free} <span class="dot">&bull;</span> Made in the USA<span class="promo-extra"> <span class="dot">&bull;</span> Ships in 1&ndash;2 business days</span></p></div>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="/" aria-label="${esc(site.name)} home"><img src="${site.logo}" alt="${esc(site.name)}" width="150" height="48"></a>
-    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <a class="brand" href="/" aria-label="${esc(site.name)} home"><img src="/img/logo-h.webp" alt="${esc(site.name)}" width="720" height="128"></a>
     <nav id="site-nav" aria-label="Main"><ul>${nav}</ul></nav>
-    <a class="cart-link" href="/cart/" aria-label="Cart">${ICON_CART}<span class="cart-count" data-cart-count hidden>0</span></a>
+    <a class="cart-pill" href="/cart/">Cart <span class="cart-count" data-cart-count>0</span></a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><span></span><span class="sr">Menu</span></button>
   </div>
 </header>
 <main id="main">
 ${body}
 </main>
 <footer class="site-footer">
-  <div class="wrap footer-grid">
-    <div>
-      <img src="${site.logo}" alt="${esc(site.name)}" width="140" height="45" loading="lazy">
-      <p>${esc(site.description)}</p>
+  <div class="wrap footer-top">
+    <div class="footer-brand">
+      <img src="/img/logo-h-white.webp" alt="${esc(site.name)}" width="720" height="128" loading="lazy">
+      <p>Great-tasting gummy supplements for calm, sleep, immune support, joints and daily nutrition. Made in the USA.</p>
       <p><a href="mailto:${site.email}">${site.email}</a></p>
     </div>
     <div>
       <h2 class="footer-h">Shop</h2>
-      <ul>${products.map((p) => `<li><a href="/supplements/${p.slug}/">${esc(p.name)} <span class="muted">${esc(p.subtitle)}</span></a></li>`).join('')}</ul>
+      <ul>${products.map((p) => `<li><a href="/supplements/${p.slug}/">${esc(p.name)}</a></li>`).join('')}<li><a href="/shop/">Shop all</a></li></ul>
     </div>
     <div>
       <h2 class="footer-h">Help</h2>
-      <ul><li><a href="/faq/">FAQ</a></li><li><a href="/contact/">Contact</a></li><li><a href="/learn/">Learn</a></li>${site.footerLinks.map((l) => `<li><a href="${l.href}">${esc(l.label)}</a></li>`).join('')}</ul>
+      <ul><li><a href="/faq/">FAQ</a></li><li><a href="/contact/">Contact us</a></li><li><a href="/shipping-policy/">Shipping</a></li><li><a href="/refund-policy/">Returns &amp; refunds</a></li><li><a href="/learn/">Supplement guides</a></li></ul>
+    </div>
+    <div class="footer-seals">
+      ${SEALS.map((s) => seal(s, 64)).join('')}
     </div>
   </div>
   <div class="wrap fda">
     <p>*${esc(site.fdaDisclaimer)}</p>
-    <p>&copy; ${new Date().getFullYear()} ${esc(site.name)}. All rights reserved.</p>
+    <p class="legal-links">&copy; ${new Date().getFullYear()} ${esc(site.name)} &middot; ${site.footerLinks.map((l) => `<a href="${l.href}">${esc(l.label)}</a>`).join(' &middot; ')}</p>
   </div>
 </footer>
-<script src="/js/site.js" defer></script>
+<script src="/js/site.js?v=${BUILD_ID}" defer></script>
 </body>
 </html>`;
 }
 
 // ---------- components ----------
 const productCard = (p, headingLevel = 3) => `
-<article class="card product-card">
-  <a href="/supplements/${p.slug}/" class="card-img"><img src="${p.image}" alt="${esc(p.name)} ${esc(p.subtitle)} bottle" width="400" height="400" loading="lazy"></a>
-  <div class="card-body">
-    <p class="eyebrow">${esc(p.category)}</p>
-    <h${headingLevel} class="card-title"><a href="/supplements/${p.slug}/">${esc(p.name)}</a></h${headingLevel}>
-    <p class="card-sub">${esc(p.subtitle)}</p>
-    <p class="card-summary">${esc(p.summary)}</p>
-    <div class="card-foot">
-      <span class="price">${money(p.price)}</span>
-      <button class="btn btn-sm" data-add-to-cart="${p.slug}">Add to cart</button>
+<article class="pcard" style="${themeVars(p)}">
+  <a href="/supplements/${p.slug}/" class="pcard-stage" tabindex="-1" aria-hidden="true">
+    <span class="pcard-tag">${esc(p.theme.label)}</span>
+    ${bottle(p, { sizes: '(max-width: 600px) 70vw, 260px' })}
+  </a>
+  <div class="pcard-body">
+    <h${headingLevel} class="pcard-title"><a href="/supplements/${p.slug}/">${esc(p.name)}</a></h${headingLevel}>
+    <p class="pcard-sub">${esc(p.subtitle)}</p>
+    <ul class="pcard-points">${p.benefits.slice(0, 2).map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
+    <div class="pcard-foot">
+      <p class="price">${money(p.price)}<small>${esc(p.count)}</small></p>
+      <button class="btn btn-accent" data-add-to-cart="${p.slug}">Add to cart</button>
     </div>
   </div>
 </article>`;
 
-const trustBar = `
-<section class="trust" aria-label="Quality standards">
-  <div class="wrap trust-grid">
-    <div><strong>Made in the USA</strong><span>Produced domestically</span></div>
-    <div><strong>GMP-Certified</strong><span>Good Manufacturing Practice facility</span></div>
-    <div><strong>FDA-Registered Facility</strong><span>Registered manufacturing site</span></div>
-    <div><strong>Third-Party Tested</strong><span>Checked for purity</span></div>
+const sealsBand = `
+<section class="seals" aria-label="Quality standards">
+  <div class="wrap seals-grid">
+    ${SEALS.map((s) => `<div class="seal">${seal(s, 96)}<span>${esc(s[1])}</span></div>`).join('')}
   </div>
 </section>`;
 
 const catalogScript = `<script>window.VC_PRODUCTS=${JSON.stringify(
-  Object.fromEntries(products.map((p) => [p.slug, { name: p.name, subtitle: p.subtitle, price: p.price, image: p.image }]))
+  Object.fromEntries(products.map((p) => [p.slug, { name: p.name, subtitle: p.subtitle, price: p.price, image: p.img.sm, accent: p.theme.accent, tint: p.theme.tint }]))
 )};window.VC_SHIPPING=${JSON.stringify({ free: site.freeShippingThreshold, flat: site.flatShipping })};</script>`;
 
 // ---------- pages ----------
 function homePage() {
-  const goals = [
-    ['stress', 'Calm & Stress', 'calm-essence'],
-    ['sleep', 'Sleep', 'tranquil-nights'],
-    ['immune', 'Immune Support', 'shieldberry-vitality'],
-    ['joints', 'Joint Health', 'flexiease'],
-    ['daily', 'Daily Nutrition', 'vitality-spectrum'],
-  ];
+  const free = money(site.freeShippingThreshold).replace('.00', '');
   const body = `
 <section class="hero">
   <div class="wrap hero-grid">
-    <div>
-      <p class="eyebrow">Gummy supplements for adults</p>
-      <h1>Daily supplements you will look forward to taking</h1>
-      <p class="lead">Great-tasting gummies for calm, sleep, immune support, joint health and complete daily nutrition. Made in the USA and third-party tested.*</p>
-      <div class="hero-cta"><a class="btn" href="/shop/">Shop all gummies</a><a class="btn btn-ghost" href="/learn/">How to choose</a></div>
-      <p class="small muted">Free US shipping on orders of $75+</p>
+    <div class="hero-copy">
+      <p class="pill">Gummy supplements for adults</p>
+      <h1>Savor health.<br><span>Embrace vitality.</span></h1>
+      <p class="lead">Five great-tasting gummies for calm, sleep, immune support, joint comfort and daily nutrition. Two gummies a day, made in the USA and third-party tested.*</p>
+      <div class="hero-cta"><a class="btn btn-lg" href="/shop/">Shop the gummies</a><a class="btn btn-lg btn-outline" href="#goals">Find your fit</a></div>
+      <ul class="hero-facts"><li><strong>${free}+</strong> free shipping</li><li><strong>30</strong> servings per bottle</li><li><strong>30-day</strong> returns</li></ul>
     </div>
-    <div class="hero-img"><img src="/img/products-lineup.png" alt="The Vitality Chews gummy supplement lineup" width="640" height="520" fetchpriority="high"></div>
+    <div class="hero-art">
+      <div class="hero-photo">${photo('park-stretch', 'Friends stretching together in a sunny park', { sizes: '(max-width: 900px) 100vw, 560px', eager: true, w: 1800, h: 1200 })}</div>
+      <img class="hero-lineup" src="/img/lineup-900.webp" srcset="/img/lineup-900.webp 900w, /img/lineup-1600.webp 1600w" sizes="(max-width: 900px) 92vw, 620px" alt="The five Vitality Chews gummy supplements: ShieldBerry Vitality, Tranquil Nights, Calm Essence, Flexiease and Vitality Spectrum" width="1600" height="742" fetchpriority="high">
+    </div>
   </div>
 </section>
-${trustBar}
-<section class="section">
+${sealsBand}
+<section class="section" id="goals">
   <div class="wrap">
-    <h2 class="center">Shop by goal</h2>
-    <p class="center muted">Pick the gummy that fits what you care about most.</p>
-    <ul class="goal-grid">
-      ${goals.map(([g, label, slug]) => `<li><a href="/supplements/${slug}/"><img src="${bySlug[slug].image}" alt="" width="120" height="120" loading="lazy"><span>${label}</span><small>${esc(bySlug[slug].name)}</small></a></li>`).join('')}
-    </ul>
+    <div class="section-head">
+      <p class="eyebrow">Shop by goal</p>
+      <h2>One gummy for every part of your day</h2>
+      <p class="muted">Pick the formula that fits what you care about most, or mix two for a simple routine.</p>
+    </div>
+    <div class="pgrid">${products.map((p) => productCard(p)).join('')}</div>
   </div>
 </section>
-<section class="section alt">
-  <div class="wrap">
-    <h2 class="center">Our gummy supplements</h2>
-    <div class="product-grid">${products.map((p) => productCard(p)).join('')}</div>
+<section class="band">
+  ${photo('park-warmup', '', { cls: 'band-bg', w: 1800, h: 1200 })}
+  <div class="wrap band-inner">
+    <p class="eyebrow light">Why gummies</p>
+    <h2>The best supplement is the one you actually take</h2>
+    <p>Big pills and chalky powders are easy to skip. Our gummies taste good and take seconds, so the habit sticks. Two a day, no water needed.</p>
+    <a class="btn btn-lg btn-light" href="/shop/">Start your routine</a>
   </div>
 </section>
 <section class="section">
   <div class="wrap split">
+    <div class="split-media">${photo('superfoods', 'Colorful whole foods: salmon, berries, citrus, greens and nuts', { sizes: '(max-width: 900px) 100vw, 520px', w: 1200, h: 1800 })}</div>
     <div>
-      <h2>Why gummies work better for most people</h2>
-      <p>The best supplement is the one you take every day. Big pills, chalky powders and complicated routines are easy to skip. Our chewable gummies taste good and take seconds, so building a daily habit is easy.</p>
-      <ul class="checks">
-        <li>No pills to swallow</li>
-        <li>Natural flavors and colors</li>
-        <li>Simple servings: most products are two gummies a day</li>
-        <li>Clear labels with suggested use</li>
-      </ul>
-    </div>
-    <div>
+      <p class="eyebrow">How we make them</p>
       <h2>Quality you can check</h2>
-      <p>Every Vitality Chews product is made in the USA in a GMP-certified, FDA-registered facility and third-party tested for purity, including heavy metals and microbials. We describe what each formula is designed to support and we do not overpromise.*</p>
-      <p><a href="/about/">Learn more about us &rarr;</a></p>
+      <ol class="steps">
+        <li><strong>Made in the USA.</strong> Every bottle comes from a GMP-certified, FDA-registered facility.</li>
+        <li><strong>Third-party tested.</strong> Independent labs check each formula for purity and potency, including heavy metals and microbials.</li>
+        <li><strong>Clear labels.</strong> The full Supplement Facts panel is on every product page, so you know what you are taking.</li>
+        <li><strong>Honest claims.</strong> We say what each formula is designed to support and stop there.*</li>
+      </ol>
+      <a class="text-link" href="/about/">More about Vitality Chews &rarr;</a>
     </div>
   </div>
 </section>
-<section class="section alt">
+<section class="section tint">
   <div class="wrap">
-    <h2 class="center">From our Learn library</h2>
+    <div class="section-head">
+      <p class="eyebrow">Learn</p>
+      <h2>Straight answers about supplements</h2>
+    </div>
     <div class="learn-grid">${learnCards()}</div>
+  </div>
+</section>
+<section class="cta-strip">
+  <div class="wrap cta-inner">
+    <img src="/img/lineup-900.webp" alt="" width="900" height="417" loading="lazy">
+    <div>
+      <h2>Free shipping over ${free}</h2>
+      <p>Mix and match any gummies. Orders ship from our US fulfillment center in 1&ndash;2 business days.</p>
+      <a class="btn btn-lg" href="/shop/">Shop all gummies</a>
+    </div>
   </div>
 </section>`;
   return layout({
@@ -295,6 +333,7 @@ ${trustBar}
     description: site.description,
     urlPath: '/',
     body: body + catalogScript,
+    preload: '<link rel="preload" as="image" href="/img/lineup-900.webp" imagesrcset="/img/lineup-900.webp 900w, /img/lineup-1600.webp 1600w" imagesizes="(max-width: 900px) 92vw, 620px">',
     schema: [
       { '@type': 'WebSite', '@id': site.url + '/#website', name: site.name, url: site.url, publisher: { '@id': site.url + '/#organization' } },
       {
@@ -306,15 +345,25 @@ ${trustBar}
   });
 }
 
+function pageHead({ title, lead = '', crumbs = [], photoName = '', eyebrow = '' }) {
+  const trail = [['Home', '/'], ...crumbs];
+  return `
+<section class="page-head${photoName ? ' has-photo' : ''}">
+  ${photoName ? photo(photoName, '', { cls: 'page-head-bg', w: 1800, h: 1200, eager: true }) : ''}
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb">${trail.map(([n, u], i) => (i === trail.length - 1 && crumbs.length ? `<span>${esc(n)}</span>` : `<a href="${u}">${esc(n)}</a>`)).join(' <span aria-hidden="true">/</span> ')}${crumbs.length ? '' : ` <span aria-hidden="true">/</span> <span>${esc(title)}</span>`}</nav>
+    ${eyebrow ? `<p class="eyebrow">${esc(eyebrow)}</p>` : ''}
+    <h1>${esc(title)}</h1>
+    ${lead ? `<p class="lead">${lead}</p>` : ''}
+  </div>
+</section>`;
+}
+
 function shopPage() {
   const body = `
-<section class="page-head"><div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span>Shop</span></nav>
-  <h1>Shop gummy supplements</h1>
-  <p class="lead">Five focused formulas for adults: stress, sleep, immune support, joint health and daily nutrition.* Free US shipping on orders of $75+.</p>
-</div></section>
-<section class="section"><div class="wrap"><div class="product-grid">${products.map((p) => productCard(p, 2)).join('')}</div></div></section>
-${trustBar}`;
+${pageHead({ title: 'Shop gummy supplements', crumbs: [['Shop', '/shop/']], photoName: 'park-couple', lead: `Five focused formulas for stress, sleep, immune support, joints and daily nutrition.* Free US shipping on orders over ${money(site.freeShippingThreshold).replace('.00', '')}.` })}
+<section class="section"><div class="wrap"><div class="pgrid">${products.map((p) => productCard(p, 2)).join('')}</div></div></section>
+${sealsBand}`;
   return layout({
     title: 'Shop Gummy Vitamins & Supplements | Vitality Chews',
     description: 'Shop Vitality Chews gummy supplements: ashwagandha, melatonin sleep, elderberry immune, glucosamine joint and multivitamin gummies. Made in the USA.',
@@ -337,55 +386,72 @@ ${trustBar}`;
 
 function productPage(p) {
   const url = `/supplements/${p.slug}/`;
-  const images = [p.image, ...p.gallery];
   const related = p.related.map((s) => bySlug[s]).filter(Boolean);
   const guide = learnArticles.find((a) => a.meta.product === p.slug);
+  const views = [
+    { sm: p.img.sm, lg: p.img.lg, alt: `${p.name} bottle`, cls: '' },
+    { sm: p.facts.sm, lg: p.facts.lg, alt: `${p.name} Supplement Facts panel`, cls: 'is-facts' },
+  ];
+  const free = money(site.freeShippingThreshold).replace('.00', '');
   const body = `
-<section class="section product">
+<section class="product" style="${themeVars(p)}">
   <div class="wrap">
-    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="/shop/">Shop</a> / <span>${esc(p.name)}</span></nav>
-    <div class="product-grid-2">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/shop/">Shop</a> <span aria-hidden="true">/</span> <span>${esc(p.name)}</span></nav>
+    <div class="product-layout">
       <div class="gallery">
-        <img class="gallery-main" src="${p.image}" alt="${esc(p.name)} ${esc(p.subtitle)}, ${esc(p.count)}" width="600" height="600" fetchpriority="high">
-        ${images.length > 1 ? `<div class="thumbs">${images.map((src, i) => `<button type="button" data-thumb="${src}" aria-label="View image ${i + 1}"><img src="${src}" alt="" width="80" height="80" loading="lazy"></button>`).join('')}</div>` : ''}
+        <div class="stage">
+          <img class="gallery-main" src="${p.img.lg}" alt="${esc(p.name)} ${esc(p.subtitle)}, ${esc(p.count)}" width="1200" height="1200" fetchpriority="high">
+        </div>
+        <div class="thumbs" role="group" aria-label="Product images">
+          ${views.map((v, i) => `<button type="button" class="${v.cls}" data-thumb="${v.lg}" data-thumb-class="${v.cls}" aria-label="Show ${esc(v.alt)}"${i === 0 ? ' aria-current="true"' : ''}><img src="${v.sm}" alt="" width="96" height="96" loading="lazy"></button>`).join('')}
+        </div>
       </div>
       <div class="buy">
-        <p class="eyebrow">${esc(p.category)}</p>
-        <h1>${esc(p.name)} <span class="h1-sub">${esc(p.subtitle)}</span></h1>
-        <p class="lead">${esc(p.summary)}</p>
-        <p class="price big">${money(p.price)} <span class="muted small">${esc(p.count)}</span></p>
-        <ul class="checks">${p.benefits.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
+        <p class="pill accent">${esc(p.theme.label)}</p>
+        <h1>${esc(p.name)}</h1>
+        <p class="buy-sub">${esc(p.subtitle)}</p>
+        <p class="buy-summary">${esc(p.summary)}</p>
+        <div class="price-row"><span class="price big">${money(p.price)}</span><span class="per">${esc(p.count)} &middot; ${servings(p)} servings &middot; about ${perDay(p)} a day</span></div>
+        <ul class="benefits">${p.benefits.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
         <div class="buy-row">
-          <label class="qty"><span class="sr">Quantity</span><input type="number" min="1" max="12" value="1" data-qty></label>
-          <button class="btn btn-lg" data-add-to-cart="${p.slug}" data-with-qty>Add to cart</button>
+          <div class="stepper"><button type="button" data-step="-1" aria-label="Decrease quantity">&minus;</button><input type="number" min="1" max="12" value="1" data-qty aria-label="Quantity"><button type="button" data-step="1" aria-label="Increase quantity">+</button></div>
+          <button class="btn btn-lg btn-accent btn-grow" data-add-to-cart="${p.slug}" data-with-qty>Add to cart &middot; ${money(p.price)}</button>
         </div>
-        <p class="small muted">Free US shipping on orders of $75+. Ships in 1&ndash;2 business days.</p>
-        <ul class="mini-trust"><li>Made in the USA</li><li>GMP-certified facility</li><li>Third-party tested</li></ul>
+        <p class="ship-note">Free US shipping on orders over ${free}. Ships in 1&ndash;2 business days. 30-day returns.</p>
+        <div class="buy-seals">${SEALS.map((s) => seal(s, 58)).join('')}</div>
       </div>
     </div>
   </div>
 </section>
-<section class="section alt">
-  <div class="wrap prose">
-    <h2>About ${esc(p.name)}</h2>
-    ${p.body.map((t) => `<p>${esc(t)}</p>`).join('')}
-    <h2>Key ingredients</h2>
-    <dl class="ingredients">${p.ingredients.map((i) => `<dt>${esc(i.name)}</dt><dd>${esc(i.about)}</dd>`).join('')}</dl>
-    <h2>Suggested use</h2>
-    <p>${esc(p.suggestedUse)} Do not exceed the suggested serving.</p>
-    <h2>Cautions</h2>
-    <p>For adults 18 and older. Pregnant or nursing women, and anyone with a medical condition or taking medication, should consult a physician before use. Keep out of reach of children. Do not use if the safety seal is damaged or missing. Store in a cool, dry place.</p>
-    <p class="small muted">See the product label for the complete Supplement Facts panel and allergen information. *${esc(site.fdaDisclaimer)}</p>
-    ${guide ? `<p><a href="/learn/${guide.slug}/">Read our guide: ${esc(guide.meta.title)} &rarr;</a></p>` : ''}
+<section class="section">
+  <div class="wrap detail-grid">
+    <div class="prose">
+      <h2>About ${esc(p.name)}</h2>
+      ${p.body.map((t) => `<p>${esc(t)}</p>`).join('')}
+      <h2>What&rsquo;s inside</h2>
+      <div class="ingredients">${p.ingredients.map((i) => `<div class="ingredient" style="${themeVars(p)}"><h3>${esc(i.name)}</h3><p>${esc(i.about)}</p></div>`).join('')}</div>
+      <h2>How to take it</h2>
+      <p>${esc(p.suggestedUse)} Do not exceed the suggested serving.</p>
+      ${p.allergens ? `<p class="allergen"><strong>Allergen information:</strong> ${esc(p.allergens)}</p>` : ''}
+      <h3>Cautions</h3>
+      <p>For adults 18 and older. If you are pregnant or nursing, have a medical condition or take medication, talk with your doctor before use. Keep out of reach of children. Do not use if the safety seal is damaged or missing. Store in a cool, dry place.</p>
+      ${guide ? `<p><a class="text-link" href="/learn/${guide.slug}/">Read our guide: ${esc(guide.meta.title)} &rarr;</a></p>` : ''}
+    </div>
+    <aside class="facts-card" aria-label="Supplement Facts">
+      <h2>Supplement Facts</h2>
+      <a href="${p.facts.lg}" target="_blank" rel="noopener"><img src="${p.facts.sm}" srcset="${p.facts.sm} 600w, ${p.facts.lg} 1200w" sizes="(max-width: 900px) 100vw, 380px" alt="${esc(p.name)} Supplement Facts panel and other ingredients" width="600" height="600" loading="lazy"></a>
+      <p class="small muted">Tap to enlarge. ${p.coa ? `<a href="${p.coa}" target="_blank" rel="noopener">View a third-party lab certificate of analysis</a>.` : ''}</p>
+    </aside>
   </div>
 </section>
-<section class="section">
+<section class="section tint">
   <div class="wrap prose">
     <h2>${esc(p.name)} FAQ</h2>
     ${p.faq.map((f) => `<details class="faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}
+    <p class="small muted">*${esc(site.fdaDisclaimer)}</p>
   </div>
 </section>
-${related.length ? `<section class="section alt"><div class="wrap"><h2 class="center">Pairs well with</h2><div class="product-grid two">${related.map((r) => productCard(r)).join('')}</div></div></section>` : ''}`;
+${related.length ? `<section class="section"><div class="wrap"><div class="section-head"><p class="eyebrow">Pairs well with</p><h2>Build your routine</h2></div><div class="pgrid pgrid-2">${related.map((r) => productCard(r)).join('')}</div></div></section>` : ''}`;
   return layout({
     title: `${p.seoTitle} | Vitality Chews`,
     description: p.metaDescription,
@@ -393,6 +459,7 @@ ${related.length ? `<section class="section alt"><div class="wrap"><h2 class="ce
     ogType: 'product',
     ogImage: p.image,
     body: body + catalogScript,
+    bodyClass: 'page-product',
     schema: [
       breadcrumbs([{ name: 'Home', url: '/' }, { name: 'Shop', url: '/shop/' }, { name: p.name, url }]),
       {
@@ -401,7 +468,7 @@ ${related.length ? `<section class="section alt"><div class="wrap"><h2 class="ce
         name: `${p.name} ${p.subtitle}`,
         sku: p.sku,
         mpn: p.sku,
-        image: images.map(abs),
+        image: [p.image, p.img.lg, p.facts.lg].map(abs),
         description: p.metaDescription,
         category: p.category,
         brand: { '@type': 'Brand', name: site.name },
@@ -425,6 +492,8 @@ ${related.length ? `<section class="section alt"><div class="wrap"><h2 class="ce
   });
 }
 
+const PAGE_PHOTOS = { about: 'park-couple', contact: 'morning-workout', faq: 'heart-healthy' };
+
 function contentPage(slug, { meta, body }) {
   const url = `/${slug}/`;
   let html = markdown(body);
@@ -444,10 +513,7 @@ function contentPage(slug, { meta, body }) {
     });
   }
   const page = `
-<section class="page-head"><div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span>${esc(meta.title)}</span></nav>
-  <h1>${esc(meta.title)}</h1>
-</div></section>
+${pageHead({ title: meta.title, photoName: PAGE_PHOTOS[slug] || '' })}
 <section class="section"><div class="wrap prose">
 ${html}
 ${meta.updated ? `<p class="small muted">Last updated: ${esc(meta.updated)}</p>` : ''}
@@ -466,18 +532,17 @@ function learnCards() {
   return learnArticles
     .map((a) => {
       const p = bySlug[a.meta.product];
-      return `<article class="card learn-card">${p ? `<img src="${p.image}" alt="" width="120" height="120" loading="lazy">` : ''}<div><h3><a href="/learn/${a.slug}/">${esc(a.meta.title)}</a></h3><p>${esc(a.meta.description)}</p></div></article>`;
+      return `<article class="lcard">
+  <a class="lcard-media" href="/learn/${a.slug}/" tabindex="-1" aria-hidden="true">${a.meta.image ? photo(a.meta.image, '', { sizes: '(max-width: 700px) 100vw, 540px' }) : ''}${p ? `<span class="lcard-bottle" style="${themeVars(p)}"><img src="${p.img.sm}" alt="" width="120" height="120" loading="lazy"></span>` : ''}</a>
+  <div class="lcard-body"><p class="eyebrow">Guide</p><h3><a href="/learn/${a.slug}/">${esc(a.meta.title)}</a></h3><p>${esc(a.meta.description)}</p></div>
+</article>`;
     })
     .join('');
 }
 
 function learnIndex() {
   const body = `
-<section class="page-head"><div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span>Learn</span></nav>
-  <h1>Learn: supplement guides</h1>
-  <p class="lead">Straightforward guides to the ingredients in our gummies, how to use them and what to look for on a label.</p>
-</div></section>
+${pageHead({ title: 'Supplement guides', crumbs: [['Learn', '/learn/']], photoName: 'stethoscope-produce', lead: 'Plain-English guides to the ingredients in our gummies, how to use them and what to look for on a label.' })}
 <section class="section"><div class="wrap"><div class="learn-grid">${learnCards()}</div></div></section>`;
   return layout({
     title: 'Supplement Guides | Learn | Vitality Chews',
@@ -491,19 +556,19 @@ function learnIndex() {
 function learnArticle(a) {
   const url = `/learn/${a.slug}/`;
   const p = bySlug[a.meta.product];
+  const date = new Date(a.meta.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const body = `
 <article>
-<section class="page-head"><div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <span>${esc(a.meta.title)}</span></nav>
-  <h1>${esc(a.meta.title)}</h1>
-  <p class="small muted">By the Vitality Chews team &middot; <time datetime="${a.meta.date}">${new Date(a.meta.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</time></p>
-</div></section>
-<section class="section"><div class="wrap prose">
+${pageHead({ title: a.meta.title, crumbs: [['Learn', '/learn/'], [a.meta.title, url]], photoName: a.meta.image || '', eyebrow: 'Guide' })}
+<section class="section"><div class="wrap article-grid">
+<div class="prose">
+<p class="small muted">By the Vitality Chews team &middot; <time datetime="${a.meta.date}">${date}</time></p>
 ${markdown(a.body)}
 <p class="small muted">This article is for general information and is not medical advice. *${esc(site.fdaDisclaimer)}</p>
+</div>
+${p ? `<aside class="article-aside"><p class="eyebrow">Featured in this guide</p>${productCard(p, 2)}</aside>` : ''}
 </div></section>
-</article>
-${p ? `<section class="section alt"><div class="wrap"><div class="product-grid one">${productCard(p, 2)}</div></div></section>` : ''}`;
+</article>`;
   return layout({
     title: `${a.meta.seoTitle || a.meta.title} | Vitality Chews`,
     description: a.meta.description,
@@ -530,46 +595,51 @@ ${p ? `<section class="section alt"><div class="wrap"><div class="product-grid o
 
 function cartPage() {
   const body = `
-<section class="page-head"><div class="wrap"><h1>Your cart</h1></div></section>
+<section class="page-head slim"><div class="wrap"><h1>Your cart</h1></div></section>
 <section class="section"><div class="wrap cart-wrap">
-  <div id="cart-items" class="cart-items"><p class="muted">Loading your cart&hellip;</p></div>
-  <aside class="cart-summary card" aria-label="Order summary">
+  <div>
+    <div class="ship-meter" data-ship-meter hidden><p data-free-note></p><div class="meter"><span data-meter-fill></span></div></div>
+    <div id="cart-items" class="cart-items"><p class="muted">Loading your cart&hellip;</p></div>
+  </div>
+  <aside class="cart-summary" aria-label="Order summary">
     <h2>Order summary</h2>
     <dl>
       <div><dt>Subtotal</dt><dd data-subtotal>$0.00</dd></div>
       <div><dt>Shipping</dt><dd data-shipping>Calculated at checkout</dd></div>
     </dl>
-    <p class="small" data-free-note></p>
     <button class="btn btn-lg btn-block" data-checkout disabled>Secure checkout</button>
     <p class="small muted center">Payments are processed securely by Stripe. Sales tax, if any, is calculated at checkout.</p>
-    <p class="small muted" data-checkout-error role="alert"></p>
+    <p class="small error" data-checkout-error role="alert"></p>
+    <div class="cart-seals">${SEALS.map((s) => seal(s, 52)).join('')}</div>
   </aside>
-</div></section>`;
+</div></section>
+<section class="section tint" data-cart-upsell hidden><div class="wrap"><div class="section-head"><h2>Complete your routine</h2></div><div class="pgrid">${products.map((p) => productCard(p, 3).replace('<article class="pcard"', `<article data-upsell="${p.slug}" class="pcard"`)).join('')}</div></div></section>`;
   return layout({ title: 'Cart | Vitality Chews', description: 'Your Vitality Chews cart.', urlPath: '/cart/', body: body + catalogScript, noindex: true, bodyClass: 'page-cart' });
 }
 
 function successPage() {
   const body = `
-<section class="page-head"><div class="wrap center">
+<section class="page-head slim"><div class="wrap center">
+  <img class="success-art" src="/img/lineup-900.webp" alt="" width="900" height="417">
   <h1>Thank you for your order!</h1>
   <p class="lead" data-order-msg>We are confirming your payment&hellip;</p>
 </div></section>
 <section class="section"><div class="wrap prose center">
   <p>You will get an email confirmation shortly, and another email with tracking as soon as your order ships (usually within 1&ndash;2 business days).</p>
   <p>Questions? Email <a href="mailto:${site.email}">${site.email}</a>.</p>
-  <p><a class="btn" href="/shop/">Continue shopping</a></p>
+  <p><a class="btn btn-lg" href="/shop/">Continue shopping</a></p>
 </div></section>`;
   return layout({ title: 'Order confirmed | Vitality Chews', description: 'Thank you for your order.', urlPath: '/order/success/', body, noindex: true, bodyClass: 'page-success' });
 }
 
 function notFoundPage() {
   const body = `
-<section class="page-head"><div class="wrap center">
+<section class="page-head slim"><div class="wrap center">
   <h1>Page not found</h1>
   <p class="lead">The page you are looking for has moved or no longer exists.</p>
-  <p><a class="btn" href="/shop/">Shop our gummies</a></p>
+  <p><a class="btn btn-lg" href="/shop/">Shop our gummies</a></p>
 </div></section>
-<section class="section alt"><div class="wrap"><div class="product-grid">${products.map((p) => productCard(p, 2)).join('')}</div></div></section>`;
+<section class="section"><div class="wrap"><div class="pgrid">${products.map((p) => productCard(p, 2)).join('')}</div></div></section>`;
   return layout({ title: 'Page not found | Vitality Chews', description: 'Page not found.', urlPath: '/404', body: body + catalogScript, noindex: true });
 }
 

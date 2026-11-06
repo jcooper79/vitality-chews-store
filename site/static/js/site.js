@@ -20,7 +20,6 @@
     var n = count(cart || load());
     document.querySelectorAll('[data-cart-count]').forEach(function (el) {
       el.textContent = n;
-      el.hidden = n === 0;
     });
   }
   function toast(msg) {
@@ -43,13 +42,23 @@
   });
 
   // Product gallery thumbnails
-  document.querySelectorAll('[data-thumb]').forEach(function (b, i) {
-    if (i === 0) b.setAttribute('aria-current', 'true');
+  document.querySelectorAll('[data-thumb]').forEach(function (b) {
     b.addEventListener('click', function () {
       var main = document.querySelector('.gallery-main');
-      if (main) main.src = b.getAttribute('data-thumb');
+      var stage = document.querySelector('.stage');
+      if (main) { main.removeAttribute('srcset'); main.src = b.getAttribute('data-thumb'); }
+      if (stage) stage.className = 'stage ' + (b.getAttribute('data-thumb-class') || '');
       document.querySelectorAll('[data-thumb]').forEach(function (x) { x.removeAttribute('aria-current'); });
       b.setAttribute('aria-current', 'true');
+    });
+  });
+
+  // Quantity stepper on product pages
+  document.querySelectorAll('[data-step]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var input = b.parentNode.querySelector('[data-qty]');
+      var v = (parseInt(input.value, 10) || 1) + parseInt(b.getAttribute('data-step'), 10);
+      input.value = Math.max(1, Math.min(12, v));
     });
   });
 
@@ -67,7 +76,13 @@
     var cart = load();
     cart[slug] = Math.min(12, (cart[slug] || 0) + qty);
     save(cart);
-    toast(P[slug].name + ' added to your cart. <a href="/cart/">View cart</a>');
+    toast('<img src="' + P[slug].image + '" alt="" style="background:' + P[slug].tint + '"><span><strong>' + P[slug].name + '</strong> added to your cart.</span><a href="/cart/">View cart</a>');
+    var label = btn.innerHTML;
+    btn.classList.add('added');
+    btn.innerHTML = 'Added &#10003;';
+    setTimeout(function () { btn.classList.remove('added'); btn.innerHTML = label; }, 1600);
+    document.querySelectorAll('.cart-pill').forEach(function (c) { c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); });
+    if (document.getElementById('cart-items')) renderCart();
   });
 
   // Cart page
@@ -77,26 +92,41 @@
     var slugs = Object.keys(cart).filter(function (s) { return P[s] && cart[s] > 0; });
     var subtotal = 0;
     if (!slugs.length) {
-      itemsEl.innerHTML = '<p>Your cart is empty.</p><p><a class="btn" href="/shop/">Shop gummies</a></p>';
+      itemsEl.innerHTML = '<div class="cart-empty"><img src="/img/lineup-900.webp" alt="" width="900" height="417"><h2>Your cart is empty</h2><p class="muted">Pick a gummy for calm, sleep, immune support, joints or daily nutrition.</p><p><a class="btn btn-lg" href="/shop/">Shop gummies</a></p></div>';
     } else {
       itemsEl.innerHTML = slugs.map(function (s) {
         var p = P[s], q = cart[s];
         subtotal += p.price * q;
         return '<div class="cart-row" data-slug="' + s + '">' +
-          '<img src="' + p.image + '" alt="" width="80" height="80">' +
-          '<div><h3><a href="/supplements/' + s + '/">' + p.name + '</a></h3><div class="small muted">' + p.subtitle + ' &middot; ' + money(p.price) + '</div>' +
-          '<div class="controls"><button type="button" data-dec aria-label="Decrease quantity">&minus;</button><span aria-live="polite">' + q + '</span><button type="button" data-inc aria-label="Increase quantity">+</button>' +
+          '<a class="thumb" href="/supplements/' + s + '/" style="background:' + p.tint + '"><img src="' + p.image + '" alt="" width="96" height="96"></a>' +
+          '<div><h3><a href="/supplements/' + s + '/">' + p.name + '</a></h3><div class="small muted">' + p.subtitle + ' &middot; ' + money(p.price) + ' each</div>' +
+          '<div class="controls"><div class="stepper"><button type="button" data-dec aria-label="Decrease quantity">&minus;</button><span aria-live="polite">' + q + '</span><button type="button" data-inc aria-label="Increase quantity">+</button></div>' +
           '<button type="button" class="remove" data-remove>Remove</button></div></div>' +
-          '<strong>' + money(p.price * q) + '</strong></div>';
+          '<span class="line-total">' + money(p.price * q) + '</span></div>';
       }).join('');
     }
     document.querySelector('[data-subtotal]').textContent = money(subtotal);
     var shipEl = document.querySelector('[data-shipping]');
     var note = document.querySelector('[data-free-note]');
+    var meter = document.querySelector('[data-ship-meter]');
+    var fill = document.querySelector('[data-meter-fill]');
+    meter.hidden = !slugs.length;
+    fill.style.width = Math.min(100, (subtotal / SHIP.free) * 100) + '%';
     if (!slugs.length) { shipEl.textContent = '—'; note.textContent = ''; }
-    else if (subtotal >= SHIP.free) { shipEl.textContent = 'FREE'; note.textContent = 'You qualify for free shipping.'; }
-    else { shipEl.textContent = money(SHIP.flat); note.textContent = 'Add ' + money(SHIP.free - subtotal) + ' more for free shipping.'; }
+    else if (subtotal >= SHIP.free) { shipEl.textContent = 'FREE'; note.textContent = 'Nice! Your order ships free.'; }
+    else { shipEl.textContent = money(SHIP.flat); note.textContent = 'You are ' + money(SHIP.free - subtotal) + ' away from free shipping.'; }
     document.querySelector('[data-checkout]').disabled = !slugs.length;
+    // Suggest products that are not in the cart yet
+    var upsell = document.querySelector('[data-cart-upsell]');
+    if (upsell) {
+      var shown = 0;
+      upsell.querySelectorAll('[data-upsell]').forEach(function (el) {
+        var inCart = !!cart[el.getAttribute('data-upsell')];
+        el.hidden = inCart;
+        if (!inCart) shown++;
+      });
+      upsell.hidden = shown === 0;
+    }
   }
   if (itemsEl) {
     renderCart();

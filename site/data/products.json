@@ -9,8 +9,8 @@
     "count": "60 gummies",
     "serving": "2 gummies",
     "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
-    "image": "/img/products/roc929.png",
-    "gallery": ["/img/products/roc929-label.png"],
+    "image": "/img/products/roc929.jpg",
+    "gallery": [],
     "category": "Stress & Mood",
     "goal": "stress",
     "seoTitle": "Ashwagandha Gummies for Calm & Stress Support | Calm Essence",
@@ -47,8 +47,24 @@
         "a": "Talk with your healthcare provider before combining supplements with medications, or if you are pregnant, nursing or have a medical condition."
       }
     ],
-    "related": ["tranquil-nights", "vitality-spectrum"],
-    "verifyLabel": true
+    "related": [
+      "tranquil-nights",
+      "vitality-spectrum"
+    ],
+    "img": {
+      "sm": "/img/products/roc929-600.webp",
+      "lg": "/img/products/roc929-1200.webp"
+    },
+    "facts": {
+      "sm": "/img/products/roc929-facts-600.webp",
+      "lg": "/img/products/roc929-facts.webp"
+    },
+    "theme": {
+      "accent": "#7b5bd6",
+      "tint": "#efe9ff",
+      "tint2": "#d9ccff",
+      "label": "Calm & Stress"
+    }
   },
   {
     "slug": "tranquil-nights",
@@ -60,8 +76,8 @@
     "count": "60 gummies",
     "serving": "2 gummies",
     "suggestedUse": "As a dietary supplement, take two (2) gummies before bedtime.",
-    "image": "/img/products/roc920.png",
-    "gallery": ["/img/products/roc920-label.png"],
+    "image": "/img/products/roc920.jpg",
+    "gallery": [],
     "category": "Sleep",
     "goal": "sleep",
     "seoTitle": "Sleep Gummies with Melatonin & Passion Flower | Tranquil Nights",
@@ -106,8 +122,24 @@
         "a": "Many adults use melatonin nightly for short periods. Ask your healthcare provider about long-term use or if you take other medications."
       }
     ],
-    "related": ["calm-essence", "vitality-spectrum"],
-    "verifyLabel": true
+    "related": [
+      "calm-essence",
+      "vitality-spectrum"
+    ],
+    "img": {
+      "sm": "/img/products/roc920-600.webp",
+      "lg": "/img/products/roc920-1200.webp"
+    },
+    "facts": {
+      "sm": "/img/products/roc920-facts-600.webp",
+      "lg": "/img/products/roc920-facts.webp"
+    },
+    "theme": {
+      "accent": "#3346b8",
+      "tint": "#e7ebff",
+      "tint2": "#c9d2ff",
+      "label": "Sleep"
+    }
   },
   {
     "slug": "shieldberry-vitality",
@@ -119,8 +151,8 @@
     "count": "60 gummies",
     "serving": "2 gummies",
     "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
-    "image": "/img/products/roc942.png",
-    "gallery": ["/img/products/roc942-label.png", "/img/products/roc942-lifestyle.jpg"],
+    "image": "/img/products/roc942.jpg",
+    "gallery": [],
     "category": "Immune Support",
     "goal": "immune",
     "seoTitle": "Elderberry Gummies with Vitamin C & Zinc | ShieldBerry Vitality",
@@ -165,8 +197,25 @@
         "a": "No. Vitality Chews products are made for adults 18 and older."
       }
     ],
-    "related": ["vitality-spectrum", "calm-essence"],
-    "verifyLabel": false
+    "related": [
+      "vitality-spectrum",
+      "calm-essence"
+    ],
+    "img": {
+      "sm": "/img/products/roc942-600.webp",
+      "lg": "/img/products/roc942-1200.webp"
+    },
+    "facts": {
+      "sm": "/img/products/roc942-facts-600.webp",
+      "lg": "/img/products/roc942-facts.webp"
+    },
+    "coa": "/img/products/roc942-coa.jpg",
+    "theme": {
+      "accent": "#c2185b",
+      "tint": "#ffe7f0",
+      "tint2": "#ffc6da",
+      "label": "Immune"
+    }
   },
   {
     "slug": "flexiease",
@@ -178,8 +227,8 @@
     "count": "60 gummies",
     "serving": "2 gummies",
     "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
-    "image": "/img/products/roc923.png",
-    "gallery": ["/img/products/roc923-label.png", "/img/products/roc923-lifestyle.jpg"],
+    "image": "/img/products/roc923.jpg",
+    "gallery": [],
     "category": "Joint Health",
     "goal": "joints",
     "seoTitle": "Glucosamine Gummies for Joint Support | Flexiease",
@@ -216,8 +265,26 @@
         "a": "Check the labels to avoid doubling up on glucosamine, and ask your healthcare provider if you take blood thinners or other medications."
       }
     ],
-    "related": ["vitality-spectrum", "shieldberry-vitality"],
-    "verifyLabel": false
+    "related": [
+      "vitality-spectrum",
+      "shieldberry-vitality"
+    ],
+    "img": {
+      "sm": "/img/products/roc923-600.webp",
+      "lg": "/img/products/roc923-1200.webp"
+    },
+    "facts": {
+      "sm": "/img/products/roc923-facts-600.webp",
+      "lg": "/img/products/roc923-facts.webp"
+    },
+    "coa": "/img/products/roc923-coa.jpg",
+    "theme": {
+      "accent": "#0b8fc2",
+      "tint": "#e1f5fd",
+      "tint2": "#bde8f9",
+      "label": "Joints"
+    },
+    "allergens": "Contains shellfish (shrimp and crab)."
   },
   {
     "slug": "vitality-spectrum",
@@ -229,8 +296,8 @@
     "count": "60 gummies",
     "serving": "2 gummies",
     "suggestedUse": "As a dietary supplement, take two (2) gummies once a day.",
-    "image": "/img/products/roc918.png",
-    "gallery": ["/img/products/roc918-label.png", "/img/products/roc918-lifestyle.jpg"],
+    "image": "/img/products/roc918.jpg",
+    "gallery": [],
     "category": "Daily Nutrition",
     "goal": "daily",
     "seoTitle": "Multivitamin Gummies for Adults | Vitality Spectrum",
@@ -279,7 +346,24 @@
         "a": "The best multivitamin is the one you take every day. Gummies are an easy way to stay consistent."
       }
     ],
-    "related": ["shieldberry-vitality", "flexiease"],
-    "verifyLabel": false
+    "related": [
+      "shieldberry-vitality",
+      "flexiease"
+    ],
+    "img": {
+      "sm": "/img/products/roc918-600.webp",
+      "lg": "/img/products/roc918-1200.webp"
+    },
+    "facts": {
+      "sm": "/img/products/roc918-facts-600.webp",
+      "lg": "/img/products/roc918-facts.webp"
+    },
+    "coa": "/img/products/roc918-coa.jpg",
+    "theme": {
+      "accent": "#e67700",
+      "tint": "#fff1dc",
+      "tint2": "#ffdca8",
+      "label": "Daily Nutrition"
+    }
   }
 ]
