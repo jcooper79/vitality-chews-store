@@ -1,7 +1,7 @@
 // Vitality Chews storefront Worker
 // - Serves the static site from dist/ (ASSETS binding)
 // - /api/checkout          creates a Stripe Checkout Session (prices come from the server-side catalog)
-// - /api/stripe-webhook    records paid orders in D1
+// - /api/stripe-webhook    records paid orders in D1, handles refunds, emails the owner
 // - /api/order             order lookup for the thank-you page
 // - /api/shipstation       ShipStation "Custom Store" endpoint (order export + ship notify) for Rocktomic fulfillment
 // - 301 redirects for old WordPress/WooCommerce URLs
@@ -142,6 +142,56 @@ async function createCheckout(request, env) {
   }
 }
 
+// ---------- owner notifications ----------
+// Sent with the Cloudflare send_email binding (ORDER_EMAIL) to ORDER_NOTIFY_TO, which must be a verified
+// Email Routing destination address. A failed send is logged and never blocks an order or a webhook.
+const usd = (cents) => '$' + (Number(cents || 0) / 100).toFixed(2);
+const htmlEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+async function notifyOwner(env, subject, lines) {
+  if (!env.ORDER_EMAIL || !env.ORDER_NOTIFY_TO) {
+    console.log('owner email skipped (ORDER_EMAIL binding or ORDER_NOTIFY_TO not set):', subject);
+    return;
+  }
+  const text = lines.join('\n');
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#13241b">${lines
+    .map((l) => (l === '' ? '<br>' : `<div>${htmlEsc(l)}</div>`))
+    .join('')}</div>`;
+  try {
+    await env.ORDER_EMAIL.send({
+      to: env.ORDER_NOTIFY_TO,
+      from: { email: env.ORDER_EMAIL_FROM || 'orders@vitalitychews.com', name: 'Vitality Chews Store' },
+      subject,
+      text,
+      html,
+    });
+  } catch (e) {
+    console.error('owner email failed:', subject, e.message);
+  }
+}
+
+async function emailNewOrder(env, orderNumber, o, items) {
+  const ship = [o.ship_name, o.ship_line1, o.ship_line2, `${o.ship_city}, ${o.ship_state} ${o.ship_postal}`, o.ship_country].filter((x) => x && x.trim());
+  await notifyOwner(env, `New order ${orderNumber}: ${usd(o.total_cents)}`, [
+    `New paid order ${orderNumber}`,
+    '',
+    ...items.map((i) => `${i.quantity} x ${i.name} (${i.sku}) at ${usd(i.unit_price_cents)}`),
+    '',
+    `Subtotal: ${usd(o.subtotal_cents)}`,
+    `Shipping: ${usd(o.shipping_cents)}`,
+    `Tax: ${usd(o.tax_cents)}`,
+    `Total: ${usd(o.total_cents)}`,
+    '',
+    'Ship to:',
+    ...ship,
+    '',
+    `Customer: ${o.email}${o.phone ? ', ' + o.phone : ''}`,
+    `Stripe payment: ${o.stripe_payment_intent || 'n/a'}`,
+    '',
+    'The order is now waiting for ShipStation to import it.',
+  ]);
+}
+
 // ---------- orders ----------
 async function recordPaidOrder(env, sessionId) {
   const existing = await env.DB.prepare('SELECT order_number FROM orders WHERE stripe_session_id = ?').bind(sessionId).first();
@@ -179,7 +229,58 @@ async function recordPaidOrder(env, sessionId) {
     );
   }
   await env.DB.batch(stmts);
+
+  await emailNewOrder(
+    env,
+    orderNumber,
+    {
+      email: cust.email || '', phone: cust.phone || '', ship_name: ship.name || cust.name || '',
+      ship_line1: addr.line1 || '', ship_line2: addr.line2 || '', ship_city: addr.city || '', ship_state: addr.state || '',
+      ship_postal: addr.postal_code || '', ship_country: addr.country || 'US', stripe_payment_intent: s.payment_intent || '',
+      subtotal_cents: s.amount_subtotal || 0, shipping_cents: s.total_details?.amount_shipping || 0,
+      tax_cents: s.total_details?.amount_tax || 0, total_cents: s.amount_total || 0,
+    },
+    (s.line_items?.data || []).map((li) => {
+      const meta = li.price?.product?.metadata || {};
+      return { quantity: li.quantity, name: li.description || CATALOG[meta.slug]?.name || '', sku: meta.sku || CATALOG[meta.slug]?.sku || '', unit_price_cents: li.price?.unit_amount || 0 };
+    })
+  );
   return orderNumber;
+}
+
+// A refund only cancels the order when the whole charge is refunded. A partial refund (a discount, a
+// missing item) leaves the order as is, so it still ships. Either way the owner gets an email.
+async function handleRefund(env, charge) {
+  const pi = charge.payment_intent;
+  if (!pi) return;
+  const order = await env.DB.prepare('SELECT order_number, status, total_cents FROM orders WHERE stripe_payment_intent = ?').bind(pi).first();
+  if (!order) return;
+  const full = charge.refunded === true || (charge.amount_refunded || 0) >= (charge.amount || 0);
+  const refunded = usd(charge.amount_refunded);
+
+  if (!full) {
+    await notifyOwner(env, `Partial refund on ${order.order_number}: ${refunded}`, [
+      `${refunded} of ${usd(charge.amount)} was refunded on order ${order.order_number}.`,
+      '',
+      `This was a partial refund, so the order stays "${order.status}" and will still ship.`,
+      'If items need to be removed from the shipment, change the order in ShipStation.',
+    ]);
+    return;
+  }
+  if (order.status === 'paid') {
+    await env.DB.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE order_number = ? AND status = 'paid'")
+      .bind(new Date().toISOString(), order.order_number)
+      .run();
+    await notifyOwner(env, `Order ${order.order_number} refunded and cancelled`, [
+      `Order ${order.order_number} was fully refunded (${refunded}) and marked cancelled.`,
+      '',
+      'ShipStation picks up the cancellation on its next check. If the order was already sent to the warehouse, confirm with Rocktomic that it did not ship.',
+    ]);
+  } else {
+    await notifyOwner(env, `Order ${order.order_number} refunded after it shipped`, [
+      `Order ${order.order_number} was fully refunded (${refunded}), but its status is "${order.status}", so nothing was changed.`,
+    ]);
+  }
 }
 
 async function stripeWebhook(request, env) {
@@ -191,10 +292,7 @@ async function stripeWebhook(request, env) {
   if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
     await recordPaidOrder(env, event.data.object.id);
   }
-  if (event.type === 'charge.refunded') {
-    const pi = event.data.object.payment_intent;
-    if (pi) await env.DB.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE stripe_payment_intent = ? AND status = 'paid'").bind(new Date().toISOString(), pi).run();
-  }
+  if (event.type === 'charge.refunded') await handleRefund(env, event.data.object);
   return json({ received: true });
 }
 
