@@ -24,6 +24,18 @@ const fmtDate = (iso) => {
 const usd = (c) => '$' + (Number(c || 0) / 100).toFixed(2);
 const safeNext = (n) => (typeof n === 'string' && /^\/admin(\/[\w\-/?=&%.]*)?$/.test(n) ? n : '/admin/');
 
+function sameSitePost(request, url) {
+  const site = request.headers.get('sec-fetch-site');
+  if (site) return site === 'same-origin' || site === 'none';
+  const origin = request.headers.get('origin');
+  if (!origin) return true; // non-browser client; the SameSite=Lax session cookie still guards actions
+  try {
+    return new URL(origin).host === url.host;
+  } catch {
+    return false;
+  }
+}
+
 function cookieValue(request) {
   const m = (request.headers.get('cookie') || '').match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`));
   return m ? m[1] : null;
@@ -212,11 +224,9 @@ export async function handleAdmin(request, env, url) {
   const path = url.pathname.replace(/\/+$/, '') || '/admin';
   const method = request.method;
 
-  // Cross-site form posts are refused
-  if (method === 'POST') {
-    const origin = request.headers.get('origin');
-    if (origin && new URL(origin).host !== url.host) return html('Forbidden', 403);
-  }
+  // Cross-site form posts are refused. Browsers send Sec-Fetch-Site; with Referrer-Policy no-referrer
+  // they may send "Origin: null", so the Origin header is only a fallback for clients without Sec-Fetch-Site.
+  if (method === 'POST' && !sameSitePost(request, url)) return html('Forbidden', 403);
   const form = method === 'POST' ? await request.formData().catch(() => new FormData()) : null;
 
   if (path === '/admin/login') return method === 'POST' ? sendLoginLink(request, env, form) : loginPage(safeNext(url.searchParams.get('next')));
