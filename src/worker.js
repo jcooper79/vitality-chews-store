@@ -178,7 +178,8 @@ async function recordPaidOrder(env, sessionId) {
   if (existing) return existing.order_number;
 
   const s = await stripe(env, 'GET', `checkout/sessions/${encodeURIComponent(sessionId)}?expand%5B%5D=line_items.data.price.product`);
-  if (s.payment_status !== 'paid') return null;
+  // 'no_payment_required' = a $0 order (100% coupon), e.g. Rocktomic's integration test order
+  if (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required') return null;
 
   const ship = s.collected_information?.shipping_details || s.shipping_details || {};
   const addr = ship.address || {};
