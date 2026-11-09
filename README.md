@@ -6,7 +6,7 @@ Static storefront + Cloudflare Worker for vitalitychews.com. Replaces the WordPr
 - **Checkout:** Stripe Checkout (hosted). Prices come from `site/data/products.json` on the server, never from the browser.
 - **Orders:** saved to D1 (`vitality-chews-orders`) by the Stripe webhook. The owner gets an email for each new order and each refund.
 - **Refunds:** a full refund marks the order `cancelled` (ShipStation picks that up). A partial refund leaves the order alone so it still ships.
-- **Fulfillment:** Rocktomic pulls orders through a ShipStation **Custom Store** channel pointed at `/api/shipstation` and posts tracking back to it.
+- **Fulfillment:** Rocktomic only imports from WooCommerce, so each paid order is copied into the WordPress/WooCommerce store (`src/woo.js`, REST API key in `WC_CONSUMER_KEY` / `WC_CONSUMER_SECRET`). Rocktomic's ShipStation pulls it from there; a 5-minute cron copies tracking back and retries failed copies. Cancelling or fully refunding here cancels the WooCommerce copy. (`/api/shipstation` is a ShipStation Custom Store endpoint that Rocktomic declined to use; it is kept but unused.)
 
 ## Customer email and admin portal
 Mail for vitalitychews.com runs on Cloudflare (no Google Workspace):
@@ -30,7 +30,7 @@ Mail for vitalitychews.com runs on Cloudflare (no Google Workspace):
    - URL: `https://vitalitychews.com/api/shipstation`
    - Username / password: the `SHIPSTATION_USER` / `SHIPSTATION_PASS` values
    - Status mapping: `paid` = Awaiting Shipment, `shipped` = Shipped, `cancelled` = Cancelled
-5. Point the domain at the Worker (Custom Domains) after testing on the workers.dev URL.
+5. Point the domain at the Worker with a **Route** (`vitalitychews.com/*` and `www.vitalitychews.com/*`), not a Custom Domain, keeping the existing proxied DNS record for the WordPress server. Then set `WP_PASSTHROUGH` to `"true"` and `ADMIN_BASE_URL` to `https://vitalitychews.com`. WordPress admin, the WooCommerce API and the ShipStation plugin keep working at the same address, so Rocktomic's connection does not change.
 
 ## Images
 All images in `site/static/img` came from the WordPress media library and were resized and converted to WebP:

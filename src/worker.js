@@ -7,10 +7,13 @@
 // - /api/contact           contact form -> admin inbox
 // - /admin                 admin portal (inbox, replies, orders); see src/admin.js
 // - email()                inbound mail from Cloudflare Email Routing; see src/mail.js
+// - scheduled()            every 5 min: copy orders to WooCommerce / tracking back (Rocktomic); see src/woo.js
+// - WordPress paths        passed to the WordPress origin when WP_PASSTHROUGH = "true" (admin, WooCommerce API)
 // - 301 redirects for old WordPress/WooCommerce URLs
 import { CATALOG, SHIPPING } from './generated/catalog.js';
 import { notifyOwner, handleEmail, handleContact } from './mail.js';
 import { handleAdmin } from './admin.js';
+import { syncOrderToWoo, cancelInWoo, runWooSync } from './woo.js';
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -226,6 +229,7 @@ async function recordPaidOrder(env, sessionId) {
       return { quantity: li.quantity, name: li.description || CATALOG[meta.slug]?.name || '', sku: meta.sku || CATALOG[meta.slug]?.sku || '', unit_price_cents: li.price?.unit_amount || 0 };
     })
   );
+  await syncOrderToWoo(env, id); // send to WooCommerce -> Rocktomic now; the cron retries if this fails
   return orderNumber;
 }
 
@@ -234,7 +238,7 @@ async function recordPaidOrder(env, sessionId) {
 async function handleRefund(env, charge) {
   const pi = charge.payment_intent;
   if (!pi) return;
-  const order = await env.DB.prepare('SELECT order_number, status, total_cents FROM orders WHERE stripe_payment_intent = ?').bind(pi).first();
+  const order = await env.DB.prepare('SELECT id, order_number, status, total_cents FROM orders WHERE stripe_payment_intent = ?').bind(pi).first();
   if (!order) return;
   const full = charge.refunded === true || (charge.amount_refunded || 0) >= (charge.amount || 0);
   const refunded = usd(charge.amount_refunded);
@@ -252,10 +256,11 @@ async function handleRefund(env, charge) {
     await env.DB.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE order_number = ? AND status = 'paid'")
       .bind(new Date().toISOString(), order.order_number)
       .run();
+    await cancelInWoo(env, order.id);
     await notifyOwner(env, `Order ${order.order_number} refunded and cancelled`, [
       `Order ${order.order_number} was fully refunded (${refunded}) and marked cancelled.`,
       '',
-      'ShipStation picks up the cancellation on its next check. If the order was already sent to the warehouse, confirm with Rocktomic that it did not ship.',
+      'The WooCommerce copy was cancelled too, so Rocktomic should not ship it. If it was already being packed, confirm with Rocktomic.',
     ]);
   } else {
     await notifyOwner(env, `Order ${order.order_number} refunded after it shipped`, [
@@ -282,7 +287,9 @@ async function orderLookup(url, env) {
   if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sid)) return json({ error: 'Not found' }, 404);
   try {
     const orderNumber = await recordPaidOrder(env, sid); // idempotent; covers the case where the webhook is still in flight
-    return orderNumber ? json({ orderNumber }) : json({ status: 'pending' }, 202);
+    if (!orderNumber) return json({ status: 'pending' }, 202);
+    const row = await env.DB.prepare('SELECT wc_order_number FROM orders WHERE stripe_session_id = ?').bind(sid).first();
+    return json({ orderNumber: row?.wc_order_number ? `#${row.wc_order_number}` : orderNumber });
   } catch (e) {
     console.error('order lookup', e.message);
     return json({ error: 'Not found' }, 404);
@@ -410,7 +417,17 @@ function withHeaders(res) {
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
 }
 
+// WordPress stays behind this Worker so Rocktomic's ShipStation connection to WooCommerce keeps working.
+// Only on the real domain (Worker route, not Custom Domain) with WP_PASSTHROUGH = "true": fetch(request) then
+// goes to the WordPress origin.
+const WP_PATHS = /^\/(wp-admin|wp-login\.php|wp-json|wp-content|wp-includes|wp-cron\.php)(\/|$|\?)/;
+const isWordPressPath = (url) => WP_PATHS.test(url.pathname) || url.searchParams.has('wc-api') || url.pathname.startsWith('/wc-api/');
+
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runWooSync(env).catch((e) => console.error('woo cron', e.stack || e.message)));
+  },
+
   async email(message, env) {
     try {
       await handleEmail(message, env);
@@ -429,6 +446,8 @@ export default {
       url.hostname = 'vitalitychews.com';
       return Response.redirect(url.toString(), 301);
     }
+
+    if (env.WP_PASSTHROUGH === 'true' && isWordPressPath(url)) return fetch(request);
 
     try {
       if (url.pathname === '/api/checkout' && request.method === 'POST') return await createCheckout(request, env);

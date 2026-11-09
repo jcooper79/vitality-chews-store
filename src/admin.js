@@ -1,6 +1,7 @@
 // Admin portal at /admin: customer inbox (read + reply from hello@), new email, recent orders.
 // Sign-in is a one-time link emailed to ORDER_NOTIFY_TO (no password to leak). Sessions are random tokens
 // stored hashed in D1 and sent as an HttpOnly cookie.
+import { cancelInWoo } from './woo.js';
 import { esc, sha256hex, randomToken, nowIso, rateLimited, notifyOwner, sendToCustomer, startThread, adminBase } from './mail.js';
 
 const COOKIE = 'vc_admin';
@@ -199,9 +200,9 @@ async function ordersPage(env, url) {
   const { results } = await env.DB.prepare(
     `SELECT o.*, (SELECT GROUP_CONCAT(i.quantity || ' x ' || i.sku, ', ') FROM order_items i WHERE i.order_id = o.id) AS items FROM orders o ORDER BY o.id DESC LIMIT 100`
   ).all();
-  const flash = url.searchParams.get('cancelled') ? `<div class="flash">Order ${esc(url.searchParams.get('cancelled'))} cancelled. ShipStation picks this up on its next check. No money was refunded; refund in Stripe if needed.</div>` : '';
+  const flash = url.searchParams.get('cancelled') ? `<div class="flash">Order ${esc(url.searchParams.get('cancelled'))} cancelled. The WooCommerce copy was cancelled so Rocktomic will not ship it. No money was refunded; refund in Stripe if needed.</div>` : '';
   return html(page('Orders', `<h1>Orders</h1>${flash}${results.length ? `<table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="hide-sm">Items</th><th>Total</th><th>Status</th></tr></thead><tbody>${results
-    .map((o) => `<tr><td><strong>${esc(o.order_number || '')}</strong></td><td>${fmtDate(o.created_at)}</td><td>${esc(o.ship_name)}<br><a class="small" href="/admin/compose?to=${encodeURIComponent(o.email)}">${esc(o.email)}</a></td><td class="hide-sm">${esc(o.items || '')}</td><td>${usd(o.total_cents)}</td><td><span class="pill ${esc(o.status)}">${esc(o.status)}</span>${o.tracking_number ? `<br><span class="small">${esc(o.carrier || '')} ${esc(o.tracking_number)}</span>` : ''}${o.status === 'paid' ? `<form method="post" action="/admin/orders/${o.id}/cancel" style="margin-top:6px"><button class="btn ghost" style="padding:4px 10px;font-size:12px" title="Stops fulfillment. Does not refund.">Cancel order</button></form>` : ''}</td></tr>`)
+    .map((o) => `<tr><td><strong>${esc(o.order_number || '')}</strong>${o.wc_order_number ? `<br><span class="small">Woo #${esc(o.wc_order_number)}</span>` : o.status === 'paid' ? `<br><span class="small" style="color:#8a1c12" title="${esc(o.wc_sync_error || '')}">Not sent to Rocktomic yet</span>` : ''}</td><td>${fmtDate(o.created_at)}</td><td>${esc(o.ship_name)}<br><a class="small" href="/admin/compose?to=${encodeURIComponent(o.email)}">${esc(o.email)}</a></td><td class="hide-sm">${esc(o.items || '')}</td><td>${usd(o.total_cents)}</td><td><span class="pill ${esc(o.status)}">${esc(o.status)}</span>${o.tracking_number ? `<br><span class="small">${esc(o.carrier || '')} ${esc(o.tracking_number)}</span>` : ''}${o.status === 'paid' ? `<form method="post" action="/admin/orders/${o.id}/cancel" style="margin-top:6px"><button class="btn ghost" style="padding:4px 10px;font-size:12px" title="Stops fulfillment. Does not refund.">Cancel order</button></form>` : ''}</td></tr>`)
     .join('')}</tbody></table>` : '<p class="muted">No orders yet.</p>'}`, { unread: await unreadCount(env) }));
 }
 
@@ -250,6 +251,7 @@ export async function handleAdmin(request, env, url) {
     const o = await env.DB.prepare('SELECT order_number, status FROM orders WHERE id = ?').bind(Number(om[1])).first();
     if (o && o.status === 'paid') {
       await env.DB.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = 'paid'").bind(nowIso(), Number(om[1])).run();
+      await cancelInWoo(env, Number(om[1]));
     }
     return redirect(`/admin/orders?cancelled=${encodeURIComponent(o?.order_number || '')}`);
   }

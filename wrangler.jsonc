@@ -29,14 +29,21 @@
     // Links in admin emails. Change to https://vitalitychews.com when the domain points at this Worker.
     "ADMIN_BASE_URL": "https://vitality-chews-store.resqware.workers.dev",
     // "false" = notices say only that a message arrived (no text); you then read and reply in the admin.
-    "INBOX_NOTIFY_BODY": "true"
+    "INBOX_NOTIFY_BODY": "true",
+    // WooCommerce store that Rocktomic's ShipStation imports from (orders are copied there). Needs the
+    // WC_CONSUMER_KEY / WC_CONSUMER_SECRET secrets (WooCommerce REST API key, Read/Write).
+    "WC_URL": "https://vitalitychews.com",
+    // "true" only once vitalitychews.com runs on this Worker through a Route: /wp-admin, /wp-json and the
+    // ShipStation plugin are then passed to the WordPress server so Rocktomic's connection keeps working.
+    "WP_PASSTHROUGH": "false"
   },
+  "triggers": { "crons": ["*/5 * * * *"] },
   // Email: order/refund notices and inbox notices to ORDER_NOTIFY_TO (secret, a verified Email Routing address),
   // customer replies from SUPPORT_EMAIL. vitalitychews.com must be onboarded in Email Service > Email Sending,
   // and Email Routing's catch-all must send to this Worker for the inbox.
   "send_email": [{ "name": "EMAIL" }],
   "r2_buckets": [{ "binding": "MAIL_FILES", "bucket_name": "vitality-chews-mail" }],
   // Secrets (set with `wrangler secret put NAME` or in the dashboard):
-  //   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SHIPSTATION_USER, SHIPSTATION_PASS, ORDER_NOTIFY_TO, INBOX_SECRET
+  //   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SHIPSTATION_USER, SHIPSTATION_PASS, ORDER_NOTIFY_TO, INBOX_SECRET, WC_CONSUMER_KEY, WC_CONSUMER_SECRET
   "observability": { "enabled": true }
 }
